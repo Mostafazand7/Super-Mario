@@ -330,17 +330,27 @@
   }
   const best = loadBest();
 
-  // ---------- audio: a small original folk-style loop ----------
-  // Not a real recording — there's no way to license or fetch actual Lori
-  // music here, so this synthesizes an original tune in the same spirit:
-  // a Phrygian-dominant scale (the flat-2/major-3rd color common to Persian
-  // and Kurdish/Lori-adjacent folk melody) over a driving 6/8 dance pulse.
+  // ---------- audio: an ElevenLabs-generated Lori folk theme ----------
+  // assets/audio/music/theme.mp3 is a real Lori (Lorestani/Bakhtiari)
+  // instrumental loop produced by scripts/generate-sfx.mjs (run via the
+  // "Generate SFX" GitHub Action). If that file is missing — e.g. before
+  // the workflow has run, or the request fails offline — this falls back
+  // to a synthesized tune in the same spirit: a Phrygian-dominant scale
+  // (the flat-2/major-3rd color common to Persian and Kurdish/Lori-adjacent
+  // folk melody) over a driving 6/8 dance pulse, so the game stays playable.
   const audio = (() => {
     let actx = null, master = null, muted = false, started = false, timer = null;
+    let usingSynth = false;
     const SCALE = [293.66, 311.13, 369.99, 392.00, 440.00, 466.16, 523.25, 587.33]; // D Eb F# G A Bb C D
     const MELODY = [0,-1,2,3, 4,-1,2,-1, 0,-1,2,3, 4,5,4,3, 2,-1,0,-1, 2,3,4,-1, 5,4,3,2, 0,-1,-1,-1];
     const STEP_DUR = 0.16;
     let step = 0, nextTime = 0;
+
+    const theme = new Audio("assets/audio/music/theme.mp3");
+    theme.loop = true;
+    theme.preload = "auto";
+    theme.volume = 0.35;
+    theme.addEventListener("error", () => { if (started) startSynth(); });
 
     function ensure() {
       if (actx) return;
@@ -348,7 +358,7 @@
         actx = new (window.AudioContext || window.webkitAudioContext)();
       } catch { return; }
       master = actx.createGain();
-      master.gain.value = 0.16;
+      master.gain.value = muted ? 0 : 0.16;
       master.connect(actx.destination);
     }
 
@@ -385,18 +395,25 @@
       }
     }
 
-    function start() {
+    function startSynth() {
+      if (usingSynth) return;
+      usingSynth = true;
       ensure();
       if (!actx) return;
       if (actx.state === "suspended") actx.resume();
-      if (started) return;
-      started = true;
       nextTime = actx.currentTime + 0.05;
       timer = setInterval(scheduleLoop, 50);
     }
 
+    function start() {
+      if (started) return;
+      started = true;
+      theme.play().catch(() => startSynth());
+    }
+
     function toggleMute() {
       muted = !muted;
+      theme.muted = muted;
       if (master) master.gain.value = muted ? 0 : 0.16;
       return muted;
     }

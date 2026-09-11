@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-// Generates the Kavir Dash sound-effect set via the ElevenLabs Sound Effects
-// API. Run in CI (see .github/workflows/generate-sfx.yml) with
-// ELEVENLABS_API_KEY set as a secret — never hardcode a key here.
+// Generates the Kavir Dash sound-effect set (and the Lori-style background
+// theme) via the ElevenLabs Sound Effects API. Run in CI (see
+// .github/workflows/generate-sfx.yml) with ELEVENLABS_API_KEY set as a
+// secret — never hardcode a key here.
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = path.join(__dirname, "..", "assets", "audio", "sfx");
+const AUDIO_DIR = path.join(__dirname, "..", "assets", "audio");
 
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 if (!API_KEY) {
@@ -64,6 +65,14 @@ const SFX = [
     duration_seconds: 0.2,
     prompt_influence: 0.6,
   },
+  {
+    id: "theme",
+    dir: "music",
+    text: "Traditional Lori (Lorestani/Bakhtiari) Iranian folk instrumental music, ney reed flute carrying the melody over tanbur and daf frame drum, driving 6/8 dance rhythm, Phrygian-dominant scale, warm dusk-in-the-Zagros-mountains atmosphere, no vocals, no singing, seamlessly loopable, studio quality",
+    duration_seconds: 22,
+    prompt_influence: 0.3,
+    loop: true,
+  },
 ];
 
 async function generate(sfx) {
@@ -77,6 +86,7 @@ async function generate(sfx) {
       text: sfx.text,
       duration_seconds: sfx.duration_seconds,
       prompt_influence: sfx.prompt_influence,
+      ...(sfx.loop ? { loop: true } : {}),
     }),
   });
   if (!res.ok) {
@@ -84,13 +94,14 @@ async function generate(sfx) {
     throw new Error(`${sfx.id}: HTTP ${res.status} ${body.slice(0, 300)}`);
   }
   const buf = Buffer.from(await res.arrayBuffer());
-  const outPath = path.join(OUT_DIR, `${sfx.id}.mp3`);
+  const outDir = path.join(AUDIO_DIR, sfx.dir || "sfx");
+  await mkdir(outDir, { recursive: true });
+  const outPath = path.join(outDir, `${sfx.id}.mp3`);
   await writeFile(outPath, buf);
   console.log(`saved ${outPath} (${buf.length} bytes)`);
 }
 
 async function main() {
-  await mkdir(OUT_DIR, { recursive: true });
   let failed = false;
   for (const sfx of SFX) {
     let ok = false;
