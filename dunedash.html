@@ -3,23 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Dune Dash</title>
+<title>Kavir Dash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#1A0F28;
-    --cream:#FFE9C9;
-    --sand:#E8C07D;
-    --rust:#E4572E;
+    --ink:#101A2E;
+    --cream:#FDECC8;
+    --sand:#E3B65C;
+    --rust:#C1432B;
     --gold:#FFD34E;
+    --turquoise:#1FA69A;
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
   body{
     background:
-      radial-gradient(120% 80% at 50% 0%, #33204A 0%, var(--ink) 60%, #0E0818 100%);
+      radial-gradient(120% 80% at 50% 0%, #1E3A5C 0%, var(--ink) 60%, #070C16 100%);
     color:var(--cream);
     font-family:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
     font-weight:600;
@@ -39,7 +40,7 @@
     aspect-ratio:480/272;
     border-radius:6px;
     overflow:hidden;
-    box-shadow:0 0 0 3px #2E1B45, 0 24px 60px -20px #000;
+    box-shadow:0 0 0 3px #234A57, 0 0 0 6px #17324A, 0 24px 60px -20px #000;
   }
   canvas{
     display:block;width:100%;height:100%;
@@ -75,7 +76,7 @@
     letter-spacing:-.03em;
     color:var(--sand);
   }
-  #overlay h1 span{display:block;color:var(--rust)}
+  #overlay h1 span{display:block;color:var(--turquoise)}
   #overlay p{
     margin:0 auto;max-width:42ch;
     font-size:clamp(12px,1.9vw,16px);
@@ -84,7 +85,7 @@
   }
   kbd{
     font:inherit;font-weight:800;
-    background:#33204A;border:1px solid #4B3268;
+    background:#1C3A52;border:1px solid #2E5972;
     border-bottom-width:3px;
     border-radius:4px;padding:1px 6px;color:var(--cream);
   }
@@ -109,11 +110,11 @@
     display:grid;place-content:center;
     padding:18px 22px;
     border-radius:6px;
-    background:#2E1B45;color:var(--cream);
+    background:#173049;color:var(--cream);
     font-weight:800;font-size:20px;
-    box-shadow:0 4px 0 #1F1230;
+    box-shadow:0 4px 0 #0D1E30;
   }
-  #pad div[role=button].on{background:#4B3268;transform:translateY(2px);box-shadow:0 2px 0 #1F1230}
+  #pad div[role=button].on{background:#2E5972;transform:translateY(2px);box-shadow:0 2px 0 #0D1E30}
   body.touch #pad{display:flex}
   #note{
     font-size:12px;color:#8E7AA6;text-align:center;
@@ -125,14 +126,14 @@
 <body>
 <div id="shell">
   <div id="stage">
-    <canvas id="game" width="480" height="272" aria-label="Dune Dash platform game"></canvas>
+    <canvas id="game" width="480" height="272" aria-label="Kavir Dash platform game"></canvas>
     <div id="hud">
-      <div>Sun coins <b id="coins">0</b>/<span id="total">0</span></div>
+      <div>Turquoise <b id="coins">0</b>/<span id="total">0</span></div>
       <div>Lives <b id="lives">3</b></div>
     </div>
     <div id="overlay">
-      <h1>Dune<span>Dash</span></h1>
-      <p>You are a fennec fox crossing the mesas at dusk. Collect sun coins, land on scarabs to flatten them, and reach the flag.</p>
+      <h1>Kavir<span>Dash</span></h1>
+      <p>You are a Lori villager crossing the Zagros foothills at dusk in your kolah namadi and chokha. Collect turquoise gems, hop on desert scorpions to flatten them, and reach the checkpoint.</p>
       <p><kbd>←</kbd> <kbd>→</kbd> to run · <kbd>Space</kbd> to jump · hold jump to go higher</p>
       <button id="start">Start running</button>
     </div>
@@ -168,17 +169,22 @@
   const BUFFER = 8;              // frames a jump press stays queued
 
   const COL = {
-    skyTop:"#2E1B45", skyMid:"#8E3C64", skyLow:"#E9915A",
-    sun:"#FFD9A0", mesaFar:"#5A3060", mesaNear:"#7E3F62", dune:"#C4693F",
-    sandTop:"#E8C07D", sandBody:"#A9713C", sandDark:"#70401F",
-    ink:"#221033", cream:"#FFE9C9", rust:"#E4572E",
-    gold:"#FFD34E", goldDark:"#D99A1F",
-    shell:"#2F5E5A", shellLight:"#6FD8C0",
-    flag:"#E4572E", pole:"#3E2650"
+    skyTop:"#132A45", skyMid:"#3E5C78", skyLow:"#E38A4F",
+    sun:"#FFD9A0", mesaFar:"#2E3F63", mesaNear:"#40567A", dune:"#B97A3E",
+    sandTop:"#E3B65C", sandBody:"#A9793F", sandDark:"#6E4C24",
+    ink:"#1B2436", cream:"#FDECC8", rust:"#C1432B",
+    gold:"#FFD34E", goldDark:"#D99A1F", turquoise:"#1FA69A", turquoiseDark:"#127268",
+    stone:"#8A8378", stoneDark:"#5C564C",
+    // Lori villager outfit
+    hat:"#4A4038", hatBand:"#8C2E2A", vest:"#241C18", vestTrim:"#8C2E2A",
+    shirt:"#F4E7CE", sash:"#B5322A", pants:"#5A5348", pantsDark:"#3C382F", boot:"#2A211B",
+    // desert scorpion
+    scorpion:"#7A4A2B", scorpionDark:"#4E2D18", scorpionLight:"#B98A54",
+    flag:"#1FA69A", pole:"#3C2E22"
   };
 
   // ---------- level ----------
-  // . empty   # ground   = platform   o coin   e scarab   ^ spike   p start   F flag
+  // . empty   # ground   = platform   o coin   e scorpion   ^ spike   p start   F flag
   const SRC = [
     "....................................................................................................",
     "....................................................................................................",
@@ -224,8 +230,8 @@
     return c === "#" || c === "=";
   };
 
-  // cactus decoration: fixed spots that sit on the ground row
-  const cacti = [8, 28, 44, 52, 86, 93].filter(c => solid(c, 15)).map(c => ({x:c*TS, y:15*TS}));
+  // ruined column decoration: fixed spots that sit on the ground row
+  const columns = [8, 28, 44, 52, 86, 93].filter(c => solid(c, 15)).map(c => ({x:c*TS, y:15*TS}));
 
   // ---------- state ----------
   const canvas = document.getElementById("game");
@@ -361,7 +367,7 @@
       if (player.dead > 70) {
         if (lives <= 0) {
           mode = "over";
-          showOverlay('<h1>The dunes<span>won</span></h1><p>You gathered ' + picked + ' sun coins before the sand took you.</p><button>Try again</button>');
+          showOverlay('<h1>The kavir<span>won</span></h1><p>You gathered ' + picked + ' turquoise gems before the desert took you.</p><button>Try again</button>');
         } else { resetPlayer(); mode = "play"; }
       }
       return;
@@ -457,8 +463,8 @@
     // goal
     if (goal && overlap(player, goal)) {
       mode = "win";
-      showOverlay('<h1>Mesa<span>cleared</span></h1><p>' + picked + ' of ' + coinSeed.length +
-        ' sun coins collected' + (picked === coinSeed.length ? ' — every last one.' : '.') + '</p><button>Run it again</button>');
+      showOverlay('<h1>Kavir<span>crossed</span></h1><p>' + picked + ' of ' + coinSeed.length +
+        ' turquoise gems collected' + (picked === coinSeed.length ? ' — every last one.' : '.') + '</p><button>Run it again</button>');
     }
 
     // camera
@@ -495,12 +501,12 @@
     const sx = 352 - cam*0.06, sy = 150;
     ctx.fillStyle = COL.sun;
     ctx.beginPath(); ctx.arc(sx, sy, 34, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = "rgba(46,27,69,.35)";
+    ctx.fillStyle = "rgba(19,42,69,.35)";
     for (let i = 0; i < 5; i++) ctx.fillRect(sx-40, sy - 12 + i*8, 80, 2);
   }
 
   function drawMesas() {
-    // far layer
+    // far layer — Zagros ridge, snow-capped peaks
     ctx.fillStyle = COL.mesaFar;
     const f = -cam*0.22;
     const far = [[-40,168,140,60],[130,150,90,80],[250,176,180,56],[430,146,120,90],[590,170,150,62],[760,154,110,80]];
@@ -508,8 +514,11 @@
       const px = ((x + f) % 900 + 900) % 900 - 100;
       ctx.fillRect(px, y, w, h);
       ctx.fillRect(px+10, y-8, w-20, 10);
+      ctx.fillStyle = "rgba(253,236,200,.55)";
+      ctx.fillRect(px+w/2-6, y-9, 12, 3);
+      ctx.fillStyle = COL.mesaFar;
     }
-    // near layer
+    // near layer — Zagros foothills
     ctx.fillStyle = COL.mesaNear;
     const n = -cam*0.45;
     const near = [[-20,196,170,50],[190,206,130,44],[380,192,150,54],[560,208,180,44],[760,198,140,50]];
@@ -521,8 +530,14 @@
     // dune band
     ctx.fillStyle = COL.dune;
     ctx.fillRect(0, 232, VW, VH-232);
-    ctx.fillStyle = "rgba(34,16,51,.18)";
+    ctx.fillStyle = "rgba(27,36,54,.18)";
     ctx.fillRect(0, 232, VW, 3);
+    // woven border stripe along the horizon, echoing a Persian rug edge
+    const stripe = [COL.turquoise, COL.cream, COL.rust];
+    for (let i = 0; i < Math.ceil(VW/10); i++) {
+      ctx.fillStyle = stripe[i % stripe.length];
+      ctx.fillRect(i*10, 235, 6, 2);
+    }
   }
 
   function drawTiles() {
@@ -555,16 +570,25 @@
     }
   }
 
-  function drawCactus(c) {
+  function drawColumn(c) {
     const px = Math.round(c.x - cam), py = c.y;
-    ctx.fillStyle = "#3F6B4A";
-    ctx.fillRect(px+6, py-20, 5, 20);
-    ctx.fillRect(px+2, py-14, 4, 3);
-    ctx.fillRect(px+2, py-17, 3, 5);
-    ctx.fillRect(px+11, py-11, 4, 3);
-    ctx.fillRect(px+13, py-15, 3, 6);
-    ctx.fillStyle = "#5C9163";
-    ctx.fillRect(px+6, py-20, 2, 20);
+    // broken stone shaft, fluted, Persepolis-style
+    ctx.fillStyle = COL.stoneDark;
+    ctx.fillRect(px+4, py-26, 8, 26);
+    ctx.fillStyle = COL.stone;
+    ctx.fillRect(px+5, py-26, 2, 26);
+    ctx.fillRect(px+9, py-26, 1, 26);
+    ctx.fillStyle = COL.stoneDark;
+    for (let i = 0; i < 4; i++) ctx.fillRect(px+4, py-24+i*7, 8, 1);
+    // twin bull-head capital, simplified
+    ctx.fillStyle = COL.stone;
+    ctx.fillRect(px, py-30, 16, 4);
+    ctx.fillStyle = COL.stoneDark;
+    ctx.fillRect(px+1, py-32, 4, 3);
+    ctx.fillRect(px+11, py-32, 4, 3);
+    // base
+    ctx.fillStyle = COL.stoneDark;
+    ctx.fillRect(px+2, py-2, 12, 3);
   }
 
   function drawSpike(s) {
@@ -594,26 +618,40 @@
   function drawEnemy(e) {
     const px = Math.round(e.x - cam), py = Math.round(e.y);
     if (e.squished) {
-      ctx.fillStyle = COL.shell;
+      ctx.fillStyle = COL.scorpionDark;
       ctx.fillRect(px, py + e.h - 4, e.w, 4);
       return;
     }
     const legPhase = Math.floor(t/6) % 2;
-    ctx.fillStyle = COL.ink;
+    const dir = e.vx < 0 ? -1 : 1;
+    ctx.fillStyle = COL.scorpionDark;
     ctx.fillRect(px+1, py+e.h-2, 3, 2);
     ctx.fillRect(px+e.w-4, py+e.h-2, 3, 2);
     if (legPhase) { ctx.fillRect(px-1, py+e.h-4, 2, 2); ctx.fillRect(px+e.w-1, py+e.h-4, 2, 2); }
-    // shell
-    ctx.fillStyle = COL.shell;
-    ctx.beginPath(); ctx.ellipse(px+e.w/2, py+6, e.w/2, 6, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = COL.shellLight;
-    ctx.fillRect(px+2, py+2, e.w-4, 2);
-    ctx.fillStyle = COL.ink;
-    ctx.fillRect(px+e.w/2-1, py+1, 2, 10);
-    // eyes on the leading side
-    const lead = e.vx < 0 ? px+1 : px+e.w-3;
+    // segmented tail, curled up over the back, trailing behind the direction of travel
+    const tailX = dir > 0 ? px+2 : px+e.w-2;
+    const tipX = tailX - dir*7;
+    ctx.strokeStyle = COL.scorpionDark;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(tailX, py+7);
+    ctx.quadraticCurveTo(tipX, py-3, tipX - dir*2, py+1);
+    ctx.stroke();
+    ctx.fillStyle = COL.scorpionDark;
+    ctx.fillRect(tipX - dir*3, py-1, 2, 2);
+    // body
+    ctx.fillStyle = COL.scorpion;
+    ctx.beginPath(); ctx.ellipse(px+e.w/2, py+7, e.w/2-1, 4, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = COL.scorpionLight;
+    ctx.fillRect(px+2, py+5, e.w-4, 1);
+    // pincers on the leading side
+    const pinX = dir > 0 ? px+e.w-3 : px;
+    ctx.fillStyle = COL.scorpionDark;
+    ctx.fillRect(pinX, py+3, 3, 2);
+    ctx.fillRect(pinX, py+7, 3, 2);
+    // eyes
     ctx.fillStyle = COL.cream;
-    ctx.fillRect(lead, py+3, 2, 2);
+    ctx.fillRect(dir > 0 ? px+e.w-4 : px+1, py+5, 1, 1);
   }
 
   function drawFlag() {
@@ -648,45 +686,49 @@
     ctx.scale(f, 1);
     ctx.translate(-w/2, 0);
 
-    // tail
-    ctx.fillStyle = COL.cream;
-    const tw = Math.sin(t*0.15)*1.5;
-    ctx.fillRect(-5, h-10 + (step >= 0 ? tw : 0), 5, 4);
-    ctx.fillStyle = COL.rust;
-    ctx.fillRect(-6, h-10 + (step >= 0 ? tw : 0), 2, 4);
-
-    // legs
-    ctx.fillStyle = COL.rust;
+    // legs: wide Lori trousers, gathered above the boots
+    ctx.fillStyle = COL.pants;
     if (step < 0) {
-      ctx.fillRect(1, h-3, 3, 3);
-      ctx.fillRect(w-4, h-3, 3, 3);
+      ctx.fillRect(1, h-6, 4, 6);
+      ctx.fillRect(w-5, h-6, 4, 6);
     } else if (step % 2 === 0) {
-      ctx.fillRect(0, h-3, 4, 3);
-      ctx.fillRect(w-3, h-4, 3, 4);
+      ctx.fillRect(0, h-6, 5, 6);
+      ctx.fillRect(w-4, h-7, 4, 7);
     } else {
-      ctx.fillRect(2, h-4, 3, 4);
-      ctx.fillRect(w-5, h-3, 4, 3);
+      ctx.fillRect(2, h-7, 4, 7);
+      ctx.fillRect(w-6, h-6, 5, 6);
     }
+    ctx.fillStyle = COL.boot;
+    ctx.fillRect(1, h-2, 4, 2);
+    ctx.fillRect(w-5, h-2, 4, 2);
 
-    // body
-    ctx.fillStyle = COL.cream;
-    ctx.fillRect(0, h-11, w, 8);
-    ctx.fillStyle = "#F6D2A4";
-    ctx.fillRect(0, h-11, w, 2);
+    // sash at the waist
+    ctx.fillStyle = COL.sash;
+    ctx.fillRect(0, h-9, w, 2);
+
+    // torso: cream shirt under the open chokha vest
+    ctx.fillStyle = COL.shirt;
+    ctx.fillRect(0, h-15, w, 6);
+    ctx.fillStyle = COL.vest;
+    ctx.fillRect(0, h-15, 3, 6);
+    ctx.fillRect(w-3, h-15, 3, 6);
+    ctx.fillStyle = COL.vestTrim;
+    ctx.fillRect(3, h-15, 1, 6);
+    ctx.fillRect(w-4, h-15, 1, 6);
 
     // head
-    ctx.fillStyle = COL.cream;
-    ctx.fillRect(w-9, h-17, 9, 7);
-    // ears
-    ctx.fillRect(w-8, h-21, 3, 5);
-    ctx.fillRect(w-4, h-22, 3, 6);
-    ctx.fillStyle = COL.rust;
-    ctx.fillRect(w-7, h-20, 1, 3);
-    ctx.fillRect(w-3, h-21, 1, 4);
-    // snout + eye
+    ctx.fillStyle = "#D9A46C";
+    ctx.fillRect(w-9, h-21, 8, 7);
+    // felt hat (kolah namadi) with a dark band
+    ctx.fillStyle = COL.hat;
+    ctx.fillRect(w-10, h-26, 10, 5);
+    ctx.fillRect(w-9, h-27, 8, 2);
+    ctx.fillStyle = COL.hatBand;
+    ctx.fillRect(w-10, h-22, 10, 2);
+    // eye + mustache
     ctx.fillStyle = COL.ink;
-    ctx.fillRect(w-1, h-13, 2, 2);
-    ctx.fillRect(w-5, h-15, 2, 2);
+    ctx.fillRect(w-3, h-18, 2, 2);
+    ctx.fillRect(w-5, h-16, 3, 1);
 
     ctx.restore();
   }
@@ -697,7 +739,7 @@
 
     drawSky();
     drawMesas();
-    for (const c of cacti) drawCactus(c);
+    for (const c of columns) drawColumn(c);
     drawTiles();
     for (const s of spikes) drawSpike(s);
     for (const c of coins) if (!c.taken) drawCoin(c);
@@ -707,9 +749,9 @@
 
     // dusk vignette
     const v = ctx.createLinearGradient(0,0,0,VH);
-    v.addColorStop(0,"rgba(34,16,51,.25)");
-    v.addColorStop(0.5,"rgba(34,16,51,0)");
-    v.addColorStop(1,"rgba(34,16,51,.28)");
+    v.addColorStop(0,"rgba(19,42,69,.25)");
+    v.addColorStop(0.5,"rgba(19,42,69,0)");
+    v.addColorStop(1,"rgba(19,42,69,.28)");
     ctx.fillStyle = v; ctx.fillRect(0,0,VW,VH);
 
     ctx.restore();
