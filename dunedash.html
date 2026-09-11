@@ -77,6 +77,12 @@
     backdrop-filter:blur(2px);
   }
   #overlay.hidden{display:none}
+  #overlay.title-bg{
+    background:
+      linear-gradient(180deg, rgba(12,18,32,.42) 0%, rgba(9,14,26,.62) 55%, rgba(7,11,20,.88) 100%),
+      url("assets/title-screen.jpg") center/cover no-repeat;
+    backdrop-filter:none;
+  }
   #overlay h1{
     margin:0;
     font-weight:800;
@@ -84,6 +90,7 @@
     line-height:.92;
     letter-spacing:-.03em;
     color:var(--sand);
+    text-shadow:0 3px 14px rgba(4,6,12,.65);
   }
   #overlay h1 span{display:block;color:var(--turquoise)}
   #overlay p{
@@ -91,6 +98,7 @@
     font-size:clamp(12px,1.9vw,16px);
     font-weight:600;line-height:1.5;
     color:#E4CDAE;
+    text-shadow:0 2px 8px rgba(4,6,12,.7);
   }
   kbd{
     font:inherit;font-weight:800;
@@ -141,7 +149,7 @@
       <div>Lives <b id="lives">3</b></div>
     </div>
     <button id="mute" type="button" aria-label="Toggle Lori folk music">Sound: On</button>
-    <div id="overlay">
+    <div id="overlay" class="title-bg">
       <h1>Kavir<span>Dash</span></h1>
       <p>You are a Lori villager crossing the Zagros foothills at dusk in your kolah namadi and chokha. Collect turquoise gems, hop on desert scorpions to flatten them, and reach the checkpoint.</p>
       <p><kbd>←</kbd> <kbd>→</kbd> to run · <kbd>Space</kbd> to jump, hold to go higher · <kbd>X</kbd> to throw a stone</p>
@@ -383,7 +391,7 @@
 
   function showOverlay(html) {
     ui.overlay.innerHTML = html;
-    ui.overlay.classList.remove("hidden");
+    ui.overlay.classList.remove("hidden", "title-bg");
     const b = ui.overlay.querySelector("button");
     if (b) { b.addEventListener("click", startGame); b.focus(); }
   }
