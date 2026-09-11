@@ -1,0 +1,26 @@
+name: Deploy to SSH server
+
+on:
+  push:
+    branches:
+      - main
+      - claude/great-franklin-lxjopi
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy game files over SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "dunedash.html"
+          target: ${{ secrets.SSH_TARGET_PATH }}
+          strip_components: 0
