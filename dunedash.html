@@ -340,6 +340,40 @@
     return { start, toggleMute };
   })();
 
+  // ---------- sfx: ElevenLabs-generated one-shot sounds ----------
+  // Files are produced by scripts/generate-sfx.mjs (run via the
+  // "Generate SFX" GitHub Action) and land in assets/audio/sfx/. Missing
+  // files (e.g. before that workflow has run) fail silently.
+  const sfx = (() => {
+    const SRC = {
+      jump: "assets/audio/sfx/jump.mp3",
+      coin: "assets/audio/sfx/coin.mp3",
+      throw: "assets/audio/sfx/throw.mp3",
+      squish: "assets/audio/sfx/squish.mp3",
+      hurt: "assets/audio/sfx/hurt.mp3",
+      gameover: "assets/audio/sfx/gameover.mp3",
+      win: "assets/audio/sfx/win.mp3",
+      click: "assets/audio/sfx/click.mp3"
+    };
+    const pool = {};
+    for (const name in SRC) {
+      const a = new Audio(SRC[name]);
+      a.preload = "auto";
+      pool[name] = a;
+    }
+    let muted = false;
+    function play(name) {
+      if (muted) return;
+      const base = pool[name];
+      if (!base) return;
+      const node = base.cloneNode(true);
+      node.volume = 0.7;
+      node.play().catch(() => {});
+    }
+    function setMuted(v) { muted = v; }
+    return { play, setMuted };
+  })();
+
   const player = {
     x:0, y:0, w:11, h:14, vx:0, vy:0,
     face:1, onGround:false, coyote:0, jumpBuf:0, held:false,
@@ -382,6 +416,7 @@
     });
     player.throwCd = THROW_COOLDOWN;
     player.throwAnim = 8;
+    sfx.play("throw");
   }
 
   function syncHud() {
@@ -397,6 +432,7 @@
   }
 
   function startGame() {
+    sfx.play("click");
     ui.overlay.classList.add("hidden");
     loadLevel(true);
     mode = "play";
@@ -484,6 +520,7 @@
       if (player.dead > 70) {
         if (lives <= 0) {
           mode = "over";
+          sfx.play("gameover");
           showOverlay('<h1>The kavir<span>won</span></h1><p>You gathered ' + picked + ' turquoise gems before the desert took you.</p><button>Try again</button>');
         } else { resetPlayer(); mode = "play"; }
       }
@@ -513,6 +550,7 @@
       player.jumpBuf = 0; player.coyote = 0;
       player.onGround = false; player.held = true;
       player.squash = -4;
+      sfx.play("jump");
     }
     if (!keys.jump && player.vy < CUT_V) player.vy = CUT_V;
 
@@ -554,6 +592,7 @@
           player.jumpBuf = 0;
           player.squash = -3;
           shake = 4;
+          sfx.play("squish");
         } else {
           kill();
           return;
@@ -573,7 +612,7 @@
       let gone = hitsTiles(s.x, s.y, s.w, s.h) || s.x < 0 || s.x > LEVEL_W;
       if (!gone) {
         for (const e of enemies) {
-          if (!e.squished && overlap(s, e)) { e.squished = 1; shake = Math.max(shake, 3); gone = true; break; }
+          if (!e.squished && overlap(s, e)) { e.squished = 1; shake = Math.max(shake, 3); gone = true; sfx.play("squish"); break; }
         }
       }
       if (gone) stones.splice(i, 1);
@@ -584,6 +623,7 @@
       if (c.taken) continue;
       if (Math.abs(c.x - (player.x + player.w/2)) < 11 && Math.abs(c.y - (player.y + player.h/2)) < 12) {
         c.taken = true; picked++; syncHud();
+        sfx.play("coin");
       }
     }
 
@@ -596,6 +636,7 @@
     // goal
     if (goal && overlap(player, goal)) {
       mode = "win";
+      sfx.play("win");
       showOverlay('<h1>Kavir<span>crossed</span></h1><p>' + picked + ' of ' + coinSeed.length +
         ' turquoise gems collected' + (picked === coinSeed.length ? ' — every last one.' : '.') + '</p><button>Run it again</button>');
     }
@@ -608,6 +649,7 @@
   function kill() {
     lives--; syncHud();
     mode = "dead";
+    sfx.play("hurt");
     player.dead = 1;
     player.vy = -5;
     shake = 10;
@@ -923,7 +965,9 @@
   mode = "title";
   ui.start.addEventListener("click", startGame);
   ui.mute.addEventListener("click", () => {
+    sfx.play("click");
     const muted = audio.toggleMute();
+    sfx.setMuted(muted);
     ui.mute.textContent = muted ? "Sound: Off" : "Sound: On";
   });
   requestAnimationFrame(frame);
