@@ -49,6 +49,7 @@ const STYLES = [
   ["06_isometric_lowpoly", "Art style: isometric low-poly 3D render, clean faceted geometry, soft ambient occlusion, stylized video game environment art."],
   ["07_comic_ink", "Art style: bold comic book / graphic novel illustration, thick black ink outlines, flat cel-shaded colors, dynamic action angle and heroic framing."],
   ["08_silhouette_poster", "Art style: minimalist dusk silhouette travel-poster, most foreground elements rendered as flat dark silhouettes against a vivid high-contrast sunset gradient."],
+  ["09_premium_glow", "Art style: ultra-polished premium mobile-game key art, vibrant saturated colors, dramatic volumetric god-rays through dust, glowing rim light on every silhouette, painterly digital illustration, crisp high-contrast composition, trending game-store featured-art quality."],
 ];
 
 async function generate(name, styleSuffix) {
