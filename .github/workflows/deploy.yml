@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - claude/great-franklin-lxjopi
+      - claude/keen-shannon-y90jkq
   workflow_dispatch: {}
 
 jobs:
@@ -19,7 +20,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           source: "dunedash.html"
           target: ${{ secrets.SSH_TARGET_PATH }}
