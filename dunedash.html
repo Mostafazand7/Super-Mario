@@ -57,6 +57,15 @@
     pointer-events:none;
   }
   #hud b{font-weight:800;color:var(--gold)}
+  #mute{
+    position:absolute;top:28px;right:10px;
+    font-size:10px;font-weight:800;letter-spacing:.02em;
+    padding:.3em .7em;border-radius:999px;
+    background:rgba(23,48,73,.85);color:var(--cream);
+    border:1px solid #2E5972;box-shadow:none;
+  }
+  #mute:hover{background:#1C3A52}
+  #mute:active{transform:translateY(1px);box-shadow:none}
   /* Overlays */
   #overlay{
     position:absolute;inset:0;
@@ -131,10 +140,11 @@
       <div>Turquoise <b id="coins">0</b>/<span id="total">0</span></div>
       <div>Lives <b id="lives">3</b></div>
     </div>
+    <button id="mute" type="button" aria-label="Toggle Lori folk music">Sound: On</button>
     <div id="overlay">
       <h1>Kavir<span>Dash</span></h1>
       <p>You are a Lori villager crossing the Zagros foothills at dusk in your kolah namadi and chokha. Collect turquoise gems, hop on desert scorpions to flatten them, and reach the checkpoint.</p>
-      <p><kbd>←</kbd> <kbd>→</kbd> to run · <kbd>Space</kbd> to jump · hold jump to go higher</p>
+      <p><kbd>←</kbd> <kbd>→</kbd> to run · <kbd>Space</kbd> to jump, hold to go higher · <kbd>X</kbd> to throw a stone</p>
       <button id="start">Start running</button>
     </div>
   </div>
@@ -145,6 +155,7 @@
       <div role="button" data-key="right" aria-label="Run right">→</div>
     </div>
     <div class="side">
+      <div role="button" data-key="throw" aria-label="Throw a stone">Throw</div>
       <div role="button" data-key="jump" aria-label="Jump">Jump</div>
     </div>
   </div>
@@ -167,6 +178,9 @@
   const CUT_V = -3;              // velocity cap when jump is released early
   const COYOTE = 6;              // frames of grace after leaving ground
   const BUFFER = 8;              // frames a jump press stays queued
+  const STONE_SPEED = 4.2;
+  const STONE_GRAVITY = 0.25;
+  const THROW_COOLDOWN = 12;     // frames before another stone can be thrown
 
   const COL = {
     skyTop:"#132A45", skyMid:"#3E5C78", skyLow:"#E38A4F",
@@ -243,16 +257,88 @@
     coins: document.getElementById("coins"),
     total: document.getElementById("total"),
     lives: document.getElementById("lives"),
-    start: document.getElementById("start")
+    start: document.getElementById("start"),
+    mute: document.getElementById("mute")
   };
+
+  // ---------- audio: a small original folk-style loop ----------
+  // Not a real recording — there's no way to license or fetch actual Lori
+  // music here, so this synthesizes an original tune in the same spirit:
+  // a Phrygian-dominant scale (the flat-2/major-3rd color common to Persian
+  // and Kurdish/Lori-adjacent folk melody) over a driving 6/8 dance pulse.
+  const audio = (() => {
+    let actx = null, master = null, muted = false, started = false, timer = null;
+    const SCALE = [293.66, 311.13, 369.99, 392.00, 440.00, 466.16, 523.25, 587.33]; // D Eb F# G A Bb C D
+    const MELODY = [0,-1,2,3, 4,-1,2,-1, 0,-1,2,3, 4,5,4,3, 2,-1,0,-1, 2,3,4,-1, 5,4,3,2, 0,-1,-1,-1];
+    const STEP_DUR = 0.16;
+    let step = 0, nextTime = 0;
+
+    function ensure() {
+      if (actx) return;
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      master = actx.createGain();
+      master.gain.value = 0.16;
+      master.connect(actx.destination);
+    }
+
+    function pluck(freq, time, dur, gain) {
+      const osc = actx.createOscillator(), g = actx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, time);
+      g.gain.setValueAtTime(0, time);
+      g.gain.linearRampToValueAtTime(gain, time + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0008, time + dur);
+      osc.connect(g); g.connect(master);
+      osc.start(time); osc.stop(time + dur + 0.02);
+    }
+
+    function drum(time, gain) {
+      const osc = actx.createOscillator(), g = actx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(160, time);
+      osc.frequency.exponentialRampToValueAtTime(50, time + 0.08);
+      g.gain.setValueAtTime(gain, time);
+      g.gain.exponentialRampToValueAtTime(0.0008, time + 0.12);
+      osc.connect(g); g.connect(master);
+      osc.start(time); osc.stop(time + 0.14);
+    }
+
+    function scheduleLoop() {
+      if (!actx || muted) return;
+      while (nextTime < actx.currentTime + 0.2) {
+        const deg = MELODY[step % MELODY.length];
+        if (deg >= 0) pluck(SCALE[deg], nextTime, STEP_DUR * 1.1, 0.5);
+        if (step % 4 === 0) drum(nextTime, 0.7);
+        nextTime += STEP_DUR;
+        step++;
+      }
+    }
+
+    function start() {
+      ensure();
+      if (actx.state === "suspended") actx.resume();
+      if (started) return;
+      started = true;
+      nextTime = actx.currentTime + 0.05;
+      timer = setInterval(scheduleLoop, 50);
+    }
+
+    function toggleMute() {
+      muted = !muted;
+      if (master) master.gain.value = muted ? 0 : 0.16;
+      return muted;
+    }
+
+    return { start, toggleMute };
+  })();
 
   const player = {
     x:0, y:0, w:11, h:14, vx:0, vy:0,
     face:1, onGround:false, coyote:0, jumpBuf:0, held:false,
-    anim:0, dead:0, squash:0
+    anim:0, dead:0, squash:0, throwCd:0, throwAnim:0
   };
 
-  let coins = [], enemies = [], cam = 0, lives = 3, picked = 0;
+  let coins = [], enemies = [], stones = [], cam = 0, lives = 3, picked = 0;
   let mode = "title";            // title | play | dead | over | win
   let shake = 0, flagRise = 0, t = 0;
 
@@ -263,16 +349,31 @@
     player.vx = 0; player.vy = 0;
     player.face = 1; player.dead = 0; player.squash = 0;
     player.onGround = false; player.coyote = 0; player.jumpBuf = 0;
+    player.throwCd = 0; player.throwAnim = 0;
     cam = 0;
   }
 
   function loadLevel(fullReset) {
     coins = coinSeed.map(c => ({...c, taken:false}));
     enemies = enemySeed.map(e => ({x:e.x, y:e.y, w:12, h:11, vx:-0.7, squished:0}));
+    stones = [];
     if (fullReset) { lives = 3; picked = 0; }
     flagRise = 0;
     resetPlayer();
     syncHud();
+  }
+
+  function throwStone() {
+    if (mode !== "play" || player.throwCd > 0) return;
+    const dir = player.face;
+    stones.push({
+      x: player.x + (dir > 0 ? player.w : -3),
+      y: player.y + 4,
+      w: 3, h: 3,
+      vx: dir * STONE_SPEED, vy: -1.5
+    });
+    player.throwCd = THROW_COOLDOWN;
+    player.throwAnim = 8;
   }
 
   function syncHud() {
@@ -291,14 +392,16 @@
     ui.overlay.classList.add("hidden");
     loadLevel(true);
     mode = "play";
+    audio.start();
   }
 
   // ---------- input ----------
-  const keys = {left:false, right:false, jump:false};
+  const keys = {left:false, right:false, jump:false, throw:false};
   const MAP = {
     ArrowLeft:"left", KeyA:"left",
     ArrowRight:"right", KeyD:"right",
-    Space:"jump", ArrowUp:"jump", KeyW:"jump", KeyZ:"jump"
+    Space:"jump", ArrowUp:"jump", KeyW:"jump", KeyZ:"jump",
+    KeyX:"throw"
   };
 
   addEventListener("keydown", e => {
@@ -308,6 +411,7 @@
     if (!k) return;
     e.preventDefault();
     if (k === "jump" && !keys.jump) player.jumpBuf = BUFFER;
+    if (k === "throw" && !keys.throw) throwStone();
     keys[k] = true;
   });
   addEventListener("keyup", e => {
@@ -319,7 +423,12 @@
   if (matchMedia("(pointer:coarse)").matches) document.body.classList.add("touch");
   document.querySelectorAll("#pad [data-key]").forEach(el => {
     const k = el.dataset.key;
-    const on = ev => { ev.preventDefault(); el.classList.add("on"); if (k === "jump" && !keys.jump) player.jumpBuf = BUFFER; keys[k] = true; };
+    const on = ev => {
+      ev.preventDefault(); el.classList.add("on");
+      if (k === "jump" && !keys.jump) player.jumpBuf = BUFFER;
+      if (k === "throw" && !keys.throw) throwStone();
+      keys[k] = true;
+    };
     const off = ev => { ev.preventDefault(); el.classList.remove("on"); keys[k] = false; if (k === "jump") player.held = false; };
     el.addEventListener("pointerdown", on);
     el.addEventListener("pointerup", off);
@@ -445,6 +554,22 @@
     }
     for (let i = enemies.length - 1; i >= 0; i--)
       if (enemies[i].squished > 26) enemies.splice(i,1);
+
+    // thrown stones
+    if (player.throwCd > 0) player.throwCd--;
+    if (player.throwAnim > 0) player.throwAnim--;
+    for (let i = stones.length - 1; i >= 0; i--) {
+      const s = stones[i];
+      s.vy = Math.min(s.vy + STONE_GRAVITY, MAX_FALL);
+      s.x += s.vx; s.y += s.vy;
+      let gone = hitsTiles(s.x, s.y, s.w, s.h) || s.x < 0 || s.x > LEVEL_W;
+      if (!gone) {
+        for (const e of enemies) {
+          if (!e.squished && overlap(s, e)) { e.squished = 1; shake = Math.max(shake, 3); gone = true; break; }
+        }
+      }
+      if (gone) stones.splice(i, 1);
+    }
 
     // coins
     for (const c of coins) {
@@ -654,6 +779,14 @@
     ctx.fillRect(dir > 0 ? px+e.w-4 : px+1, py+5, 1, 1);
   }
 
+  function drawStoneShot(s) {
+    const px = Math.round(s.x - cam), py = Math.round(s.y);
+    ctx.fillStyle = COL.stoneDark;
+    ctx.fillRect(px, py, s.w, s.h);
+    ctx.fillStyle = COL.stone;
+    ctx.fillRect(px, py, s.w - 1, s.h - 1);
+  }
+
   function drawFlag() {
     if (!goal) return;
     const px = Math.round(goal.x - cam), py = goal.y;
@@ -730,6 +863,14 @@
     ctx.fillRect(w-3, h-18, 2, 2);
     ctx.fillRect(w-5, h-16, 3, 1);
 
+    // throwing arm, extended briefly toward the facing side
+    if (player.throwAnim > 0) {
+      ctx.fillStyle = COL.shirt;
+      ctx.fillRect(w-1, h-14, 4, 2);
+      ctx.fillStyle = COL.stoneDark;
+      ctx.fillRect(w+2, h-15, 2, 2);
+    }
+
     ctx.restore();
   }
 
@@ -744,6 +885,7 @@
     for (const s of spikes) drawSpike(s);
     for (const c of coins) if (!c.taken) drawCoin(c);
     for (const e of enemies) drawEnemy(e);
+    for (const s of stones) drawStoneShot(s);
     drawFlag();
     if (mode !== "over") drawPlayer();
 
@@ -772,6 +914,10 @@
   loadLevel(true);
   mode = "title";
   ui.start.addEventListener("click", startGame);
+  ui.mute.addEventListener("click", () => {
+    const muted = audio.toggleMute();
+    ui.mute.textContent = muted ? "Sound: Off" : "Sound: On";
+  });
   requestAnimationFrame(frame);
 })();
 </script>
