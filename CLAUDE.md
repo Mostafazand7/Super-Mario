@@ -71,6 +71,35 @@ keys live in two different places.
   existing pattern: jump, coin, throw, squish, hurt, gameover, win,
   click).
 
+## High scores — Supabase leaderboard
+
+The game-over and win overlays include a leaderboard: enter a name, save
+the score (turquoise gems collected), see the top 10. Backed by a
+Supabase Postgres table, read/written directly from the client with the
+anon key — there is no server component.
+
+- Table: `high_scores` (`username`, `score`, `created_at`). Schema + RLS
+  policies (public read, public insert) live in `supabase/high_scores.sql`
+  — that file is reference only, paste it into the Supabase project's SQL
+  editor by hand once; nothing runs it automatically.
+- Config: `SUPABASE_URL` (repo **variable**) and `SUPABASE_ANON_KEY` (repo
+  **secret**), both under Settings → Secrets and variables → Actions.
+  Since this is a static file with no build step, `dunedash.html` ships
+  with literal placeholders `__SUPABASE_URL__` / `__SUPABASE_ANON_KEY__`,
+  and `deploy.yml`'s "Inject Supabase config" step `sed`-substitutes them
+  from those two values before the SCP copy steps. Left un-substituted
+  (e.g. opening the file locally), the leaderboard's `configured` check
+  is false and it no-ops — the game stays fully playable.
+- Client code: the `leaderboard` module in `dunedash.html` (next to
+  `sfx`), using `@supabase/supabase-js@2` from jsdelivr. `scorePanelHtml()`
+  / `wireScorePanel()` wire the name field, save button, and top-10 list
+  into the existing `showOverlay()` result screens.
+- The anon key is public once deployed (normal for Supabase; RLS is the
+  real gate, not key secrecy) — the `public insert` policy means any
+  visitor can add an arbitrary score directly against the API, not just
+  through the page. Fine for a casual leaderboard; revisit with a
+  validating Edge Function if that ever needs to be harder to spoof.
+
 ## Repeating this pattern for new assets
 
 1. Decide which generator fits (Gemini for images, ElevenLabs for audio).

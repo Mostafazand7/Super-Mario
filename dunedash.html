@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --ink:#101A2E;
@@ -145,6 +146,34 @@
   #overlay .best{
     margin:0 auto;font-size:clamp(11px,1.7vw,14px);
     color:var(--turquoise);font-weight:800;
+  }
+  #overlay .score-panel{
+    margin:0 auto;width:100%;max-width:320px;
+    display:flex;flex-direction:column;gap:6px;
+  }
+  #overlay .score-row{display:flex;gap:8px}
+  #overlay .score-row input{
+    flex:1;min-width:0;
+    font:inherit;font-weight:800;font-size:clamp(12px,1.8vw,15px);
+    padding:.5em .7em;border-radius:4px;border:1px solid #2E5972;
+    background:#0F2334;color:var(--cream);
+  }
+  #overlay .score-row input::placeholder{color:#8FA6B8}
+  #overlay .score-row button{
+    padding:.5em 1em;font-size:clamp(11px,1.6vw,14px);
+    box-shadow:0 3px 0 #B4793F;
+  }
+  #overlay .lb-status{
+    min-height:1.1em;font-size:11px;color:var(--turquoise);font-weight:800;
+  }
+  #overlay .lb-list{
+    margin:0;padding:0;list-style:none;
+    max-height:130px;overflow-y:auto;
+    font-size:clamp(11px,1.6vw,13px);text-align:left;
+  }
+  #overlay .lb-list li{
+    display:flex;justify-content:space-between;gap:8px;
+    padding:3px 6px;border-bottom:1px solid rgba(255,255,255,.08);
   }
 </style>
 </head>
@@ -409,6 +438,85 @@
     return { play, setMuted };
   })();
 
+  // ---------- leaderboard: Supabase-backed high scores ----------
+  // __SUPABASE_URL__ / __SUPABASE_ANON_KEY__ are placeholders substituted
+  // by deploy.yml (from the SUPABASE_URL variable and SUPABASE_ANON_KEY
+  // secret) before the file is copied to the server. Left unsubstituted —
+  // e.g. when opening this file locally — the leaderboard just no-ops and
+  // the game stays fully playable.
+  const leaderboard = (() => {
+    const URL = "__SUPABASE_URL__";
+    const KEY = "__SUPABASE_ANON_KEY__";
+    const configured = !URL.startsWith("__") && !KEY.startsWith("__");
+    const client = configured && window.supabase ? window.supabase.createClient(URL, KEY) : null;
+    const NAME_KEY = "kavirDash.username.v1";
+
+    function getName() { try { return localStorage.getItem(NAME_KEY) || ""; } catch { return ""; } }
+    function setName(v) { try { localStorage.setItem(NAME_KEY, v); } catch {} }
+
+    async function submit(username, score) {
+      if (!client) return { error: "unavailable" };
+      setName(username);
+      const { error } = await client.from("high_scores").insert({ username, score });
+      return { error };
+    }
+
+    async function top(n) {
+      if (!client) return [];
+      const { data, error } = await client
+        .from("high_scores")
+        .select("username, score")
+        .order("score", { ascending: false })
+        .limit(n);
+      return error ? [] : data;
+    }
+
+    return { available: !!client, getName, submit, top };
+  })();
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  function scorePanelHtml() {
+    if (!leaderboard.available) return "";
+    return '<div class="score-panel">' +
+      '<div class="score-row">' +
+        '<input id="lbName" maxlength="20" placeholder="Your name" value="' + escapeHtml(leaderboard.getName()) + '">' +
+        '<button type="button" id="lbSubmit">Save score</button>' +
+      '</div>' +
+      '<div id="lbStatus" class="lb-status"></div>' +
+      '<ol id="lbList" class="lb-list"></ol>' +
+    '</div>';
+  }
+
+  function wireScorePanel(score) {
+    if (!leaderboard.available) return;
+    const input = document.getElementById("lbName");
+    const btn = document.getElementById("lbSubmit");
+    const status = document.getElementById("lbStatus");
+    const list = document.getElementById("lbList");
+
+    async function renderTop() {
+      const rows = await leaderboard.top(10);
+      list.innerHTML = rows.map((r, i) =>
+        '<li><span>' + (i+1) + '. ' + escapeHtml(r.username) + '</span><span>' + r.score + '</span></li>'
+      ).join("");
+    }
+
+    btn.addEventListener("click", async () => {
+      const name = (input.value || "").trim().slice(0, 20) || "Traveler";
+      btn.disabled = true;
+      status.textContent = "Saving…";
+      const { error } = await leaderboard.submit(name, score);
+      status.textContent = error ? "Couldn't save score." : "Saved!";
+      btn.disabled = false;
+      renderTop();
+    });
+
+    renderTop();
+  }
+
   const player = {
     x:0, y:0, w:11, h:14, vx:0, vy:0,
     face:1, onGround:false, coyote:0, jumpBuf:0, held:false,
@@ -467,7 +575,7 @@
   function showOverlay(html) {
     ui.overlay.innerHTML = html;
     ui.overlay.classList.remove("hidden", "title-bg");
-    const b = ui.overlay.querySelector("button");
+    const b = ui.overlay.querySelector(".play-again");
     if (b) { b.addEventListener("click", startGame); b.focus(); }
   }
 
@@ -566,7 +674,10 @@
           saveBest();
           announce(`Game over. Collected ${picked} of ${coinSeed.length} turquoise gems.`);
           showOverlay('<h1>The kavir<span>won</span></h1><p>You gathered ' + picked + ' turquoise gems before the desert took you.</p>' +
-            '<p class="best">Best so far: ' + best.coins + '/' + coinSeed.length + ' turquoise</p><button>Try again</button>');
+            '<p class="best">Best so far: ' + best.coins + '/' + coinSeed.length + ' turquoise</p>' +
+            scorePanelHtml() +
+            '<button class="play-again">Try again</button>');
+          wireScorePanel(picked);
         } else { resetPlayer(); mode = "play"; }
       }
       return;
@@ -699,7 +810,9 @@
       showOverlay('<h1>Kavir<span>crossed</span></h1><p>' + picked + ' of ' + coinSeed.length +
         ' turquoise gems collected' + (picked === coinSeed.length ? ' — every last one.' : '.') + '</p>' +
         '<p class="best">Best: ' + best.coins + '/' + coinSeed.length + ' turquoise · Best time ' + best.time.toFixed(1) + 's</p>' +
-        '<button>Run it again</button>');
+        scorePanelHtml() +
+        '<button class="play-again">Run it again</button>');
+      wireScorePanel(picked);
     }
 
     // camera
